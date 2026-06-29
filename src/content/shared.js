@@ -5,6 +5,9 @@
     includeTimestamps: true,
     openTranscriptPanel: true,
     showAttachmentDownloadButtons: true,
+    showDueSoonHighlights: true,
+    notifyDueSoonAssignments: true,
+    dueNotificationMinIntervalHours: 12,
     showToast: true,
     preferredLanguages: ["ja", "en"],
     minTranscriptChars: 40
