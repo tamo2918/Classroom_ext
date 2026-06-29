@@ -1,0 +1,49 @@
+{
+  "manifest_version": 3,
+  "name": "Classroom Helper",
+  "version": "0.1.2",
+  "description": "Google Classroom の学習・授業閲覧を効率化する Chrome 拡張。動画文字起こしの時刻付き自動コピーに対応。",
+  "permissions": [
+    "activeTab",
+    "clipboardWrite",
+    "offscreen",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://classroom.google.com/*",
+    "https://drive.google.com/*",
+    "https://docs.google.com/*",
+    "https://youtube.googleapis.com/*",
+    "https://www.youtube.com/*",
+    "https://m.youtube.com/*",
+    "https://www.youtube-nocookie.com/*"
+  ],
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://classroom.google.com/*",
+        "https://drive.google.com/*",
+        "https://docs.google.com/*",
+        "https://youtube.googleapis.com/*",
+        "https://www.youtube.com/*",
+        "https://m.youtube.com/*",
+        "https://www.youtube-nocookie.com/*"
+      ],
+      "js": [
+        "src/content.js"
+      ],
+      "all_frames": true,
+      "match_about_blank": true,
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Classroom Helper"
+  },
+  "minimum_chrome_version": "109"
+}

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Classroom Helper</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Classroom Helper</h1>
+        <p id="statusText">読み込み中...</p>
+      </header>
+
+      <section aria-label="last result">
+        <dl>
+          <div>
+            <dt>状態</dt>
+            <dd id="lastStatus">-</dd>
+          </div>
+          <div>
+            <dt>動画</dt>
+            <dd id="lastTitle">-</dd>
+          </div>
+          <div>
+            <dt>文字数</dt>
+            <dd id="lastLength">-</dd>
+          </div>
+          <div>
+            <dt>時刻</dt>
+            <dd id="lastTime">-</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section aria-label="actions" class="actions">
+        <button id="scanButton" type="button">現在のページを再スキャン</button>
+        <button id="copyButton" type="button">最後の文字起こしを再コピー</button>
+        <button id="clearButton" type="button" class="secondary">履歴を消去</button>
+      </section>
+
+      <section aria-label="settings" class="settings">
+        <label>
+          <input id="autoCopy" type="checkbox">
+          自動コピー
+        </label>
+        <label>
+          <input id="openTranscriptPanel" type="checkbox">
+          文字起こしパネルを自動で開く
+        </label>
+        <label>
+          <input id="includeTimestamps" type="checkbox">
+          タイムスタンプを含める
+        </label>
+        <label>
+          <input id="showToast" type="checkbox">
+          ページ上に結果を表示
+        </label>
+        <label class="field">
+          優先言語
+          <input id="preferredLanguages" type="text" placeholder="ja,en">
+        </label>
+      </section>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>
