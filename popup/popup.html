@@ -13,69 +13,60 @@
         <p id="statusText">読み込み中...</p>
       </header>
 
-      <section aria-label="last result">
-        <dl>
-          <div>
-            <dt>状態</dt>
-            <dd id="lastStatus">-</dd>
-          </div>
-          <div>
-            <dt>動画</dt>
-            <dd id="lastTitle">-</dd>
-          </div>
-          <div>
-            <dt>文字数</dt>
-            <dd id="lastLength">-</dd>
-          </div>
-          <div>
-            <dt>時刻</dt>
-            <dd id="lastTime">-</dd>
-          </div>
-        </dl>
-      </section>
+      <section class="feature-list" aria-label="機能">
+        <label class="feature-toggle">
+          <span class="feature-copy">
+            <span class="feature-title">動画文字起こし自動コピー</span>
+            <span class="feature-description">動画を開いたら文字起こしをクリップボードへコピー</span>
+          </span>
+          <span class="toggle-control">
+            <input id="autoCopy" type="checkbox" role="switch">
+            <span class="toggle-track" aria-hidden="true"></span>
+          </span>
+        </label>
 
-      <section aria-label="actions" class="actions">
-        <button id="scanButton" type="button">現在のページを再スキャン</button>
-        <button id="copyButton" type="button">最後の文字起こしを再コピー</button>
-        <button id="clearButton" type="button" class="secondary">履歴を消去</button>
-      </section>
+        <label class="feature-toggle">
+          <span class="feature-copy">
+            <span class="feature-title">添付資料ダウンロード</span>
+            <span class="feature-description">Classroom の資料カードに直接ダウンロードボタンを表示</span>
+          </span>
+          <span class="toggle-control">
+            <input id="showAttachmentDownloadButtons" type="checkbox" role="switch">
+            <span class="toggle-track" aria-hidden="true"></span>
+          </span>
+        </label>
 
-      <section aria-label="settings" class="settings">
-        <label>
-          <input id="autoCopy" type="checkbox">
-          自動コピー
+        <label class="feature-toggle">
+          <span class="feature-copy">
+            <span class="feature-title">期限カード強調</span>
+            <span class="feature-description">期限が近い課題のあるクラスカードを枠で強調</span>
+          </span>
+          <span class="toggle-control">
+            <input id="showDueSoonHighlights" type="checkbox" role="switch">
+            <span class="toggle-track" aria-hidden="true"></span>
+          </span>
         </label>
-        <label>
-          <input id="openTranscriptPanel" type="checkbox">
-          文字起こしパネルを自動で開く
+
+        <label class="feature-toggle">
+          <span class="feature-copy">
+            <span class="feature-title">期限カードを上部表示</span>
+            <span class="feature-description">期限が近いクラスを Classroom ホーム上部へ表示</span>
+          </span>
+          <span class="toggle-control">
+            <input id="autoSortDueSoonClasses" type="checkbox" role="switch">
+            <span class="toggle-track" aria-hidden="true"></span>
+          </span>
         </label>
-        <label>
-          <input id="includeTimestamps" type="checkbox">
-          タイムスタンプを含める
-        </label>
-        <label>
-          <input id="showAttachmentDownloadButtons" type="checkbox">
-          添付資料にダウンロードボタンを表示
-        </label>
-        <label>
-          <input id="showDueSoonHighlights" type="checkbox">
-          期限が近いクラスカードを強調
-        </label>
-        <label>
-          <input id="autoSortDueSoonClasses" type="checkbox">
-          期限が近いクラスを上部に表示
-        </label>
-        <label>
-          <input id="notifyDueSoonAssignments" type="checkbox">
-          期限が近い課題を通知
-        </label>
-        <label>
-          <input id="showToast" type="checkbox">
-          ページ上に結果を表示
-        </label>
-        <label class="field">
-          優先言語
-          <input id="preferredLanguages" type="text" placeholder="ja,en">
+
+        <label class="feature-toggle">
+          <span class="feature-copy">
+            <span class="feature-title">期限通知</span>
+            <span class="feature-description">期限が近い課題を Chrome の通知で知らせる</span>
+          </span>
+          <span class="toggle-control">
+            <input id="notifyDueSoonAssignments" type="checkbox" role="switch">
+            <span class="toggle-track" aria-hidden="true"></span>
+          </span>
         </label>
       </section>
     </main>

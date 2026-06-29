@@ -1,6 +1,6 @@
 (() => {
   const DEFAULT_SETTINGS = Object.freeze({
-    settingsVersion: 5,
+    settingsVersion: 6,
     autoCopy: true,
     includeTimestamps: true,
     openTranscriptPanel: true,
@@ -45,9 +45,11 @@
     if (Number(rawSettings?.settingsVersion || 0) < DEFAULT_SETTINGS.settingsVersion) {
       migrated.settingsVersion = DEFAULT_SETTINGS.settingsVersion;
       migrated.includeTimestamps = true;
+      migrated.openTranscriptPanel = true;
       await chrome.storage.sync.set({
         settingsVersion: migrated.settingsVersion,
-        includeTimestamps: migrated.includeTimestamps
+        includeTimestamps: migrated.includeTimestamps,
+        openTranscriptPanel: migrated.openTranscriptPanel
       });
     }
 
