@@ -1,22 +1,17 @@
 (() => {
-  const DEFAULT_SETTINGS = Object.freeze({
-    settingsVersion: 4,
-    autoCopy: true,
-    includeTimestamps: true,
-    openTranscriptPanel: true,
-    showAttachmentDownloadButtons: true,
-    showToast: true,
-    preferredLanguages: ["ja", "en"],
-    minTranscriptChars: 40
-  });
-
+  const {
+    detectProvider,
+    getControlLabel,
+    getSettings,
+    showToast: showSharedToast
+  } = globalThis.CLT.content;
   const BUTTON_SIZE = 32;
   const PROVIDER = detectProvider();
+  const showToast = (message, ok) => showSharedToast("clt-helper-toast", message, ok);
   const state = {
     entries: [],
     enhanceTimer: 0,
-    lastUrl: location.href,
-    toastTimer: 0
+    lastUrl: location.href
   };
 
   init();
@@ -392,26 +387,6 @@
     return /\/folders\//.test(url.pathname) || url.pathname.includes("/drive/folders");
   }
 
-  async function getSettings() {
-    const rawSettings = await chrome.storage.sync.get(null);
-    return {
-      ...DEFAULT_SETTINGS,
-      ...rawSettings
-    };
-  }
-
-  function getControlLabel(element) {
-    return [
-      element.getAttribute("aria-label"),
-      element.getAttribute("title"),
-      element.textContent
-    ].filter(Boolean).join(" ").trim();
-  }
-
-  function detectProvider() {
-    return location.hostname === "classroom.google.com" ? "classroom" : "unknown";
-  }
-
   function injectAttachmentDownloadStyles() {
     let style = document.getElementById("clt-attachment-download-styles");
     if (!style) {
@@ -474,37 +449,4 @@
     `;
   }
 
-  function showToast(message, ok) {
-    let toast = document.getElementById("clt-helper-toast");
-    if (!toast) {
-      toast = document.createElement("div");
-      toast.id = "clt-helper-toast";
-      toast.setAttribute("role", "status");
-      toast.style.cssText = [
-        "position:fixed",
-        "right:16px",
-        "bottom:16px",
-        "z-index:2147483647",
-        "max-width:min(360px,calc(100vw - 32px))",
-        "padding:10px 12px",
-        "border-radius:8px",
-        "box-shadow:0 8px 24px rgba(0,0,0,.22)",
-        "font:13px/1.45 system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
-        "color:#fff",
-        "word-break:break-word",
-        "transition:opacity .18s ease",
-        "opacity:0"
-      ].join(";");
-      document.documentElement.appendChild(toast);
-    }
-
-    toast.textContent = message;
-    toast.style.background = ok ? "#176c3a" : "#9f2c2c";
-    toast.style.opacity = "1";
-
-    window.clearTimeout(state.toastTimer);
-    state.toastTimer = window.setTimeout(() => {
-      toast.style.opacity = "0";
-    }, 3600);
-  }
 })();

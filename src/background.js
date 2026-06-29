@@ -1,40 +1,17 @@
 import { buildAttachmentDownloadInfo } from "./background/attachment-downloads.mjs";
+import { createMessageRouter } from "./background/router.mjs";
+import { mergeSettings } from "./shared/settings.mjs";
 
 const OFFSCREEN_DOCUMENT_PATH = "offscreen/offscreen.html";
-const DEFAULT_SETTINGS = Object.freeze({
-  settingsVersion: 4,
-  autoCopy: true,
-  includeTimestamps: true,
-  openTranscriptPanel: true,
-  showAttachmentDownloadButtons: true,
-  showToast: true,
-  preferredLanguages: ["ja", "en"],
-  minTranscriptChars: 40
-});
 
 chrome.runtime.onInstalled.addListener(async () => {
   const existing = await chrome.storage.sync.get(null);
-  const next = { ...DEFAULT_SETTINGS, ...existing };
-  if (Number(existing?.settingsVersion || 0) < DEFAULT_SETTINGS.settingsVersion) {
-    next.includeTimestamps = true;
-    next.settingsVersion = DEFAULT_SETTINGS.settingsVersion;
-  }
-  await chrome.storage.sync.set(next);
+  await chrome.storage.sync.set(mergeSettings(existing));
 });
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (!message || message.target === "offscreen") {
-    return false;
-  }
-
-  if (message.type === "CLT_COPY_TRANSCRIPT") {
-    handleCopyTranscript(message, sender)
-      .then(sendResponse)
-      .catch((error) => sendResponse(toErrorResponse(error)));
-    return true;
-  }
-
-  if (message.type === "CLT_RECORD_STATUS") {
+chrome.runtime.onMessage.addListener(createMessageRouter({
+  CLT_COPY_TRANSCRIPT: handleCopyTranscript,
+  CLT_RECORD_STATUS: (message, sender) => (
     recordStatus({
       ok: Boolean(message.ok),
       status: message.status || (message.ok ? "found" : "not_found"),
@@ -44,41 +21,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       tabId: sender.tab?.id,
       frameId: sender.frameId
     })
-      .then(() => sendResponse({ ok: true }))
-      .catch((error) => sendResponse(toErrorResponse(error)));
-    return true;
+      .then(() => ({ ok: true }))
+  ),
+  CLT_DOWNLOAD_ATTACHMENT: handleDownloadAttachment,
+  CLT_GET_LAST_TRANSCRIPT: async () => ({ ok: true, ...(await getLastTranscript()) }),
+  CLT_COPY_TEXT: (message) => copyText(message.text, message.meta || {}),
+  CLT_CLEAR_LAST: async () => {
+    await clearLast();
+    return { ok: true };
   }
-
-  if (message.type === "CLT_DOWNLOAD_ATTACHMENT") {
-    handleDownloadAttachment(message, sender)
-      .then(sendResponse)
-      .catch((error) => sendResponse(toErrorResponse(error)));
-    return true;
-  }
-
-  if (message.type === "CLT_GET_LAST_TRANSCRIPT") {
-    getLastTranscript()
-      .then((result) => sendResponse({ ok: true, ...result }))
-      .catch((error) => sendResponse(toErrorResponse(error)));
-    return true;
-  }
-
-  if (message.type === "CLT_COPY_TEXT") {
-    copyText(message.text, message.meta || {})
-      .then(sendResponse)
-      .catch((error) => sendResponse(toErrorResponse(error)));
-    return true;
-  }
-
-  if (message.type === "CLT_CLEAR_LAST") {
-    clearLast()
-      .then(() => sendResponse({ ok: true }))
-      .catch((error) => sendResponse(toErrorResponse(error)));
-    return true;
-  }
-
-  return false;
-});
+}));
 
 async function handleDownloadAttachment(message, sender) {
   const downloadInfo = buildAttachmentDownloadInfo(message.href || message.url, message.title || "");
@@ -253,11 +205,4 @@ function normalizeTranscriptForCopy(text) {
     .replace(/\r\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
-}
-
-function toErrorResponse(error) {
-  return {
-    ok: false,
-    error: error instanceof Error ? error.message : String(error)
-  };
 }
