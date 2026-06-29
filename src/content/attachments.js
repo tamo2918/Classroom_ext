@@ -158,14 +158,11 @@
   function updateAttachmentButton(entry) {
     const title = getAttachmentTitle(entry.anchor);
     const rect = entry.anchor.getBoundingClientRect();
-    const left = Math.max(8, Math.min(
-      rect.right - BUTTON_WIDTH - 8,
-      window.innerWidth - BUTTON_WIDTH - 8
-    ));
-    const top = Math.max(18, Math.min(
-      rect.top + (rect.height / 2),
-      window.innerHeight - 18
-    ));
+    const pageLeft = rect.left + window.scrollX;
+    const pageRight = rect.right + window.scrollX;
+    const pageTop = rect.top + window.scrollY;
+    const left = Math.max(pageLeft + 8, pageRight - BUTTON_WIDTH - 8);
+    const top = pageTop + (rect.height / 2);
 
     entry.button.title = `${title || "添付資料"}をダウンロード`;
     entry.button.setAttribute("aria-label", entry.button.title);
@@ -383,14 +380,17 @@
 
     style.textContent = `
       #clt-attachment-download-overlay {
-        position: fixed !important;
-        inset: 0 !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        height: 0 !important;
         z-index: 2147483646 !important;
         pointer-events: none !important;
       }
 
       .clt-attachment-download-button {
-        position: fixed !important;
+        position: absolute !important;
         z-index: 2147483647 !important;
         width: ${BUTTON_WIDTH}px !important;
         min-height: 32px !important;
