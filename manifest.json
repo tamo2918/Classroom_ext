@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Classroom Helper",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Google Classroom の学習・授業閲覧を効率化する Chrome 拡張。動画文字起こしコピーと添付資料の直接ダウンロードに対応。",
   "permissions": [
     "activeTab",

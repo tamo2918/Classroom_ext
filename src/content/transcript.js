@@ -149,7 +149,7 @@
       return textTrackTranscript;
     }
 
-    if (PROVIDER !== "drive") {
+    if (canUseVisibleTranscriptFallback()) {
       const visibleTranscript = extractVisibleTranscript(settings);
       if (visibleTranscript) {
         return visibleTranscript;
@@ -268,6 +268,7 @@
   function extractVisibleTranscript(settings) {
     const candidates = [...document.querySelectorAll("[aria-label], [title], [id], [class], [role='list'], [role='region']")]
       .filter(isElementVisible)
+      .filter(isLikelyTranscriptContainer)
       .map((element) => ({
         element,
         text: cleanVisibleTranscript(element.innerText || "", settings.includeTimestamps),
@@ -402,7 +403,10 @@
     const lines = text.split(/\n+/).map((line) => line.trim()).filter(Boolean);
     const timecodes = lines.filter((line) => parsePlainTimestamp(line) >= 0).length;
     const shortTextLines = lines.filter((line) => line.length >= 2 && line.length <= 180).length;
-    return (timecodes >= 2 ? timecodes * 4 : 0) + (shortTextLines >= 4 ? shortTextLines : 0);
+    if (timecodes < 2) {
+      return 0;
+    }
+    return (timecodes * 4) + Math.min(shortTextLines, 120);
   }
 
   function formatSegments(segments, includeTimestamps) {
@@ -488,11 +492,50 @@
         Boolean(document.querySelector("iframe[src*='youtube.googleapis.com/embed'], video"));
     }
 
+    if (PROVIDER === "docs") {
+      return Boolean(document.querySelector("video"));
+    }
+
     if (PROVIDER === "classroom") {
-      return Boolean(document.querySelector("video, iframe[src*='youtube'], iframe[src*='drive.google.com'], a[href*='drive.google.com/file'][href*='/view']"));
+      return Boolean(document.querySelector("video"));
     }
 
     return Boolean(document.querySelector("video"));
+  }
+
+  function canUseVisibleTranscriptFallback() {
+    if (PROVIDER === "drive" || PROVIDER === "docs" || PROVIDER === "classroom") {
+      return false;
+    }
+
+    return hasVisibleTranscriptUi();
+  }
+
+  function hasVisibleTranscriptUi() {
+    return [...document.querySelectorAll("[aria-label], [title], [id], [class], [role='list'], [role='region']")]
+      .filter(isElementVisible)
+      .some(isLikelyTranscriptContainer);
+  }
+
+  function isLikelyTranscriptContainer(element) {
+    if (!(element instanceof Element) || element === document.body || element === document.documentElement) {
+      return false;
+    }
+
+    const signal = [
+      element.getAttribute("aria-label"),
+      element.getAttribute("title"),
+      element.id,
+      typeof element.className === "string" ? element.className : "",
+      element.getAttribute("role")
+    ].filter(Boolean).join(" ");
+
+    const text = element.innerText || element.textContent || "";
+    const lines = String(text).split(/\n+/).map((line) => line.trim()).filter(Boolean);
+    const timecodes = lines.filter((line) => parsePlainTimestamp(line) >= 0).length;
+    const hasTranscriptSignal = /(transcript|caption|subtitle|timedtext|cue|segment|文字起こし|文字おこし|字幕)/i.test(signal);
+
+    return hasTranscriptSignal && timecodes >= 2;
   }
 
   function detectProvider() {
