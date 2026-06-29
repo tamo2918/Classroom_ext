@@ -10,7 +10,7 @@
     minTranscriptChars: 40
   });
 
-  const BUTTON_WIDTH = 108;
+  const BUTTON_SIZE = 32;
   const PROVIDER = detectProvider();
   const state = {
     entries: [],
@@ -129,21 +129,54 @@
       rect.left < window.innerWidth &&
       style.visibility !== "hidden" &&
       style.display !== "none" &&
-      Number(style.opacity || 1) > 0;
+      Number(style.opacity || 1) > 0 &&
+      isAttachmentAnchorOnTop(anchor, rect);
+  }
+
+  function isAttachmentAnchorOnTop(anchor, rect) {
+    const sampleX = clamp(rect.left + Math.min(40, rect.width / 2), 0, window.innerWidth - 1);
+    const sampleY = clamp(rect.top + rect.height / 2, 0, window.innerHeight - 1);
+    const topElement = document.elementFromPoint(sampleX, sampleY);
+    if (!topElement) {
+      return false;
+    }
+
+    if (topElement === anchor || anchor.contains(topElement)) {
+      return true;
+    }
+
+    const topAnchor = topElement.closest?.("a[href]");
+    if (topAnchor) {
+      return topAnchor === anchor;
+    }
+
+    let parent = anchor.parentElement;
+    while (parent && parent !== document.body && parent !== document.documentElement) {
+      if (parent === topElement) {
+        return true;
+      }
+      parent = parent.parentElement;
+    }
+
+    return false;
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
   }
 
   function createAttachmentButtonEntry(anchor) {
-    const slot = document.createElement("div");
-    slot.className = "clt-attachment-download-slot";
-    slot.dataset.cltOverlaySlot = "1";
-
     const button = document.createElement("button");
     button.type = "button";
     button.className = "clt-attachment-download-button";
     button.dataset.cltOverlayButton = "1";
-    button.textContent = "ダウンロード";
+    button.innerHTML = `
+      <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+        <path d="M5 20h14v-2H5v2Zm7-18v10.17l3.59-3.58L17 10l-5 5-5-5 1.41-1.41L11 12.17V2h1Z"></path>
+      </svg>
+    `;
 
-    const entry = { anchor, button, slot };
+    const entry = { anchor, button };
     for (const eventName of ["pointerdown", "mousedown", "mouseup"]) {
       button.addEventListener(eventName, stopAttachmentEvent, true);
     }
@@ -155,9 +188,7 @@
       });
     }, true);
 
-    const root = getOverlayRoot();
-    root.appendChild(slot);
-    root.appendChild(button);
+    getOverlayRoot().appendChild(button);
     return entry;
   }
 
@@ -167,18 +198,9 @@
     const pageLeft = rect.left + window.scrollX;
     const pageRight = rect.right + window.scrollX;
     const pageTop = rect.top + window.scrollY;
-    const slotWidth = Math.min(rect.width - 16, BUTTON_WIDTH + 24);
-    const slotLeft = Math.max(pageLeft + 8, pageRight - slotWidth - 1);
-    const slotTop = pageTop + 1;
-    const slotHeight = Math.max(0, rect.height - 2);
-    const left = Math.max(slotLeft + 8, pageRight - BUTTON_WIDTH - 8);
-    const top = pageTop + (rect.height / 2);
+    const left = Math.max(pageLeft + 8, pageRight - BUTTON_SIZE - 8);
+    const top = pageTop + 8;
 
-    entry.anchor.classList.add("clt-attachment-download-source");
-    entry.slot.style.left = `${slotLeft}px`;
-    entry.slot.style.top = `${slotTop}px`;
-    entry.slot.style.width = `${slotWidth}px`;
-    entry.slot.style.height = `${slotHeight}px`;
     entry.button.title = `${title || "添付資料"}をダウンロード`;
     entry.button.setAttribute("aria-label", entry.button.title);
     entry.button.dataset.cltHref = entry.anchor.href;
@@ -190,9 +212,11 @@
     const anchor = entry.anchor;
     const button = entry.button;
     const title = getAttachmentTitle(anchor);
-    const previousText = button.textContent;
+    const previousLabel = button.getAttribute("aria-label");
+    const previousTitle = button.title;
     button.disabled = true;
-    button.textContent = "準備中";
+    button.title = `${title || "添付資料"}のダウンロードを準備中`;
+    button.setAttribute("aria-label", button.title);
 
     try {
       const response = await chrome.runtime.sendMessage({
@@ -209,14 +233,16 @@
       showToast(`${title || "添付資料"}のダウンロードを開始しました`, true);
     } finally {
       button.disabled = false;
-      button.textContent = previousText;
+      button.title = previousTitle;
+      if (previousLabel) {
+        button.setAttribute("aria-label", previousLabel);
+      }
     }
   }
 
   function clearOverlayButtons() {
     for (const entry of state.entries) {
       entry.anchor.classList.remove("clt-attachment-download-source");
-      entry.slot.remove();
       entry.button.remove();
     }
     state.entries = [];
@@ -231,7 +257,7 @@
       host.classList.remove("clt-attachment-download-host");
     });
     document.querySelectorAll(".clt-attachment-download-button:not([data-clt-overlay-button='1'])").forEach((button) => button.remove());
-    document.querySelectorAll(".clt-attachment-download-slot:not([data-clt-overlay-slot='1'])").forEach((slot) => slot.remove());
+    document.querySelectorAll(".clt-attachment-download-slot").forEach((slot) => slot.remove());
   }
 
   function getOverlayRoot() {
@@ -405,44 +431,40 @@
         pointer-events: none !important;
       }
 
-      a.clt-attachment-download-source {
-        padding-right: 124px !important;
-        box-sizing: border-box !important;
-      }
-
-      .clt-attachment-download-slot {
-        position: absolute !important;
-        z-index: 2147483646 !important;
-        border-radius: 0 11px 11px 0 !important;
-        border-left: 1px solid rgba(196, 199, 197, .55) !important;
-        background: linear-gradient(90deg, rgba(255, 255, 255, .82), #fff 18px) !important;
-        box-sizing: border-box !important;
-        pointer-events: none !important;
-      }
-
       .clt-attachment-download-button {
         position: absolute !important;
         z-index: 2147483647 !important;
-        width: ${BUTTON_WIDTH}px !important;
-        min-height: 32px !important;
-        padding: 0 10px !important;
-        border: 1px solid #1a73e8 !important;
-        border-radius: 6px !important;
-        color: #fff !important;
-        background: #1a73e8 !important;
-        box-shadow: none !important;
-        font: 600 12px/1.2 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+        display: inline-grid !important;
+        place-items: center !important;
+        width: ${BUTTON_SIZE}px !important;
+        height: ${BUTTON_SIZE}px !important;
+        min-width: ${BUTTON_SIZE}px !important;
+        min-height: ${BUTTON_SIZE}px !important;
+        padding: 0 !important;
+        border: 1px solid #dadce0 !important;
+        border-radius: 50% !important;
+        color: #1a73e8 !important;
+        background: rgba(255, 255, 255, .96) !important;
+        box-shadow: 0 1px 2px rgba(60, 64, 67, .18) !important;
+        font: inherit !important;
         letter-spacing: 0 !important;
         text-align: center !important;
         white-space: nowrap !important;
         cursor: pointer !important;
         pointer-events: auto !important;
-        transform: translateY(-50%) !important;
       }
 
       .clt-attachment-download-button:hover {
-        background: #1558b0 !important;
-        border-color: #1558b0 !important;
+        background: #e8f0fe !important;
+        border-color: #c6dafc !important;
+        box-shadow: 0 1px 3px rgba(60, 64, 67, .26) !important;
+      }
+
+      .clt-attachment-download-button svg {
+        width: 18px !important;
+        height: 18px !important;
+        fill: currentColor !important;
+        pointer-events: none !important;
       }
 
       .clt-attachment-download-button:disabled {
