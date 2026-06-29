@@ -293,18 +293,12 @@
       li.clt-due-card {
         position: relative !important;
         isolation: isolate !important;
-      }
-
-      li.clt-due-card::before {
-        content: "" !important;
-        position: absolute !important;
-        inset: -5px !important;
-        z-index: 2 !important;
-        pointer-events: none !important;
-        border: 2px solid var(--clt-due-border, #1a73e8) !important;
-        border-radius: 14px !important;
+        border-color: var(--clt-due-border, #1a73e8) !important;
+        outline: 2px solid var(--clt-due-border, #1a73e8) !important;
+        outline-offset: 3px !important;
         box-shadow:
-          0 0 0 2px var(--clt-due-outline, rgba(26, 115, 232, .14)),
+          inset 0 0 0 2px var(--clt-due-inner, rgba(26, 115, 232, .34)),
+          0 0 0 5px var(--clt-due-outline, rgba(26, 115, 232, .14)),
           0 0 18px var(--clt-due-glow, rgba(26, 115, 232, .28)) !important;
       }
 
@@ -329,6 +323,7 @@
 
       li.clt-due-urgent {
         --clt-due-border: #d93025;
+        --clt-due-inner: rgba(217, 48, 37, .38);
         --clt-due-outline: rgba(217, 48, 37, .16);
         --clt-due-glow: rgba(217, 48, 37, .36);
         --clt-due-text: #a50e0e;
@@ -336,6 +331,7 @@
 
       li.clt-due-soon {
         --clt-due-border: #f29900;
+        --clt-due-inner: rgba(242, 153, 0, .42);
         --clt-due-outline: rgba(242, 153, 0, .18);
         --clt-due-glow: rgba(242, 153, 0, .38);
         --clt-due-text: #9a5500;
@@ -343,6 +339,7 @@
 
       li.clt-due-upcoming {
         --clt-due-border: #1a73e8;
+        --clt-due-inner: rgba(26, 115, 232, .34);
         --clt-due-outline: rgba(26, 115, 232, .14);
         --clt-due-glow: rgba(26, 115, 232, .28);
         --clt-due-text: #174ea6;
