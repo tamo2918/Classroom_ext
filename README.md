@@ -64,7 +64,9 @@ Google フォームや Drive フォルダなど、単一ファイルとして直
 ## 実装メモ
 
 - Manifest V3 の Chrome 拡張です。
-- ページ上の検出処理は `src/content.js` で行います。
+- 動画文字起こしの検出処理は `src/content/transcript.js` で行います。
+- Classroom 添付資料のボタン表示は `src/content/attachments.js` で行います。
+- Drive / Docs の直接ダウンロード URL 変換は `src/background/attachment-downloads.mjs` に分離しています。
 - クリップボード書き込みは `src/background.js` から Offscreen Document に委譲します。
 - 添付資料の保存は `src/background.js` から `chrome.downloads.download` を呼び出します。
 - 設定と最後のコピー結果は Chrome storage に保存します。
@@ -73,8 +75,10 @@ Google フォームや Drive フォルダなど、単一ファイルとして直
 ## 検証
 
 ```bash
-node --check src/content.js
+node --check src/content/transcript.js
+node --check src/content/attachments.js
 node --check src/background.js
+node --check src/background/attachment-downloads.mjs
 node --check popup/popup.js
 node --check offscreen/offscreen.js
 python3 -m json.tool manifest.json >/dev/null
