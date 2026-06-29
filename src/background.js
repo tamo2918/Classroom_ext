@@ -1,9 +1,10 @@
 const OFFSCREEN_DOCUMENT_PATH = "offscreen/offscreen.html";
 const DEFAULT_SETTINGS = Object.freeze({
-  settingsVersion: 3,
+  settingsVersion: 4,
   autoCopy: true,
   includeTimestamps: true,
   openTranscriptPanel: true,
+  showAttachmentDownloadButtons: true,
   showToast: true,
   preferredLanguages: ["ja", "en"],
   minTranscriptChars: 40
@@ -46,6 +47,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message.type === "CLT_DOWNLOAD_ATTACHMENT") {
+    handleDownloadAttachment(message, sender)
+      .then(sendResponse)
+      .catch((error) => sendResponse(toErrorResponse(error)));
+    return true;
+  }
+
   if (message.type === "CLT_GET_LAST_TRANSCRIPT") {
     getLastTranscript()
       .then((result) => sendResponse({ ok: true, ...result }))
@@ -69,6 +77,44 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   return false;
 });
+
+async function handleDownloadAttachment(message, sender) {
+  const downloadInfo = buildAttachmentDownloadInfo(message.href || message.url, message.title || "");
+  if (!downloadInfo) {
+    return {
+      ok: false,
+      error: "この添付資料は直接ダウンロード URL を作成できません。"
+    };
+  }
+
+  const options = {
+    url: downloadInfo.downloadUrl,
+    conflictAction: "uniquify",
+    saveAs: false
+  };
+  if (downloadInfo.filename) {
+    options.filename = downloadInfo.filename;
+  }
+
+  const downloadId = await chrome.downloads.download(options);
+  await recordAttachmentDownload({
+    ok: true,
+    downloadId,
+    href: message.href || message.url || "",
+    downloadUrl: downloadInfo.downloadUrl,
+    filename: downloadInfo.filename || "",
+    title: message.title || "",
+    pageUrl: message.pageUrl || sender.tab?.url || "",
+    tabId: sender.tab?.id,
+    frameId: sender.frameId
+  });
+
+  return {
+    ok: true,
+    downloadId,
+    filename: downloadInfo.filename || ""
+  };
+}
 
 async function handleCopyTranscript(message, sender) {
   const text = normalizeTranscriptForCopy(message.text);
@@ -189,6 +235,158 @@ async function recordStatus(status) {
     recordedAt: new Date().toISOString()
   };
   await chrome.storage.local.set({ lastStatus });
+}
+
+async function recordAttachmentDownload(payload) {
+  await chrome.storage.local.set({
+    lastAttachmentDownload: {
+      ...payload,
+      downloadedAt: new Date().toISOString()
+    }
+  });
+}
+
+function buildAttachmentDownloadInfo(rawHref, rawTitle = "") {
+  const url = parseAbsoluteUrl(rawHref);
+  if (!url) {
+    return null;
+  }
+
+  const unwrapped = unwrapGoogleRedirect(url) || url;
+  const driveFileId = extractDriveFileId(unwrapped);
+  if (driveFileId && !isDriveFolderUrl(unwrapped)) {
+    return {
+      downloadUrl: buildDriveDownloadUrl(driveFileId, unwrapped),
+      filename: filenameOnlyWhenExtensionExists(rawTitle)
+    };
+  }
+
+  const native = buildGoogleNativeExport(unwrapped, rawTitle);
+  if (native) {
+    return native;
+  }
+
+  return null;
+}
+
+function parseAbsoluteUrl(rawHref) {
+  try {
+    return new URL(String(rawHref || ""));
+  } catch (_error) {
+    return null;
+  }
+}
+
+function unwrapGoogleRedirect(url) {
+  if (!/(^|\.)google\./i.test(url.hostname) && url.hostname !== "classroom.google.com") {
+    return null;
+  }
+
+  const nested = url.searchParams.get("url") || url.searchParams.get("q");
+  if (!nested) {
+    return null;
+  }
+  return parseAbsoluteUrl(nested);
+}
+
+function extractDriveFileId(url) {
+  const pathMatch = url.pathname.match(/\/file\/(?:u\/\d+\/)?d\/([^/]+)/);
+  if (pathMatch?.[1]) {
+    return pathMatch[1];
+  }
+
+  const queryId = url.searchParams.get("id");
+  if (queryId && /(^|\.)drive\.google\.com$/i.test(url.hostname)) {
+    return queryId;
+  }
+
+  return "";
+}
+
+function isDriveFolderUrl(url) {
+  return /\/folders\//.test(url.pathname) || url.pathname.includes("/drive/folders");
+}
+
+function buildDriveDownloadUrl(fileId, sourceUrl) {
+  const downloadUrl = new URL("https://drive.google.com/uc");
+  downloadUrl.searchParams.set("export", "download");
+  downloadUrl.searchParams.set("id", fileId);
+  downloadUrl.searchParams.set("confirm", "t");
+  copySearchParam(sourceUrl, downloadUrl, "resourcekey");
+  copySearchParam(sourceUrl, downloadUrl, "authuser");
+  return downloadUrl.toString();
+}
+
+function buildGoogleNativeExport(url, rawTitle) {
+  if (!/(^|\.)docs\.google\.com$/i.test(url.hostname)) {
+    return null;
+  }
+
+  const match = url.pathname.match(/^\/(document|spreadsheets|presentation|drawings)\/d\/([^/]+)/);
+  if (!match) {
+    return null;
+  }
+
+  const [, kind, fileId] = match;
+  const exportUrl = new URL(`https://docs.google.com/${kind}/d/${fileId}/export`);
+  let extension = "pdf";
+  if (kind === "spreadsheets") {
+    exportUrl.searchParams.set("format", "xlsx");
+    extension = "xlsx";
+  } else if (kind === "presentation" || kind === "drawings") {
+    exportUrl.pathname = `/${kind}/d/${fileId}/export/pdf`;
+  } else {
+    exportUrl.searchParams.set("format", "pdf");
+  }
+
+  copySearchParam(url, exportUrl, "resourcekey");
+  copySearchParam(url, exportUrl, "authuser");
+
+  return {
+    downloadUrl: exportUrl.toString(),
+    filename: filenameWithExtension(rawTitle, extension)
+  };
+}
+
+function copySearchParam(sourceUrl, targetUrl, key) {
+  const value = sourceUrl.searchParams.get(key);
+  if (value) {
+    targetUrl.searchParams.set(key, value);
+  }
+}
+
+function filenameOnlyWhenExtensionExists(rawTitle) {
+  const filename = sanitizeFilename(cleanAttachmentTitle(rawTitle));
+  return /\.[a-z0-9]{2,8}$/i.test(filename) ? filename : "";
+}
+
+function filenameWithExtension(rawTitle, extension) {
+  const base = sanitizeFilename(cleanAttachmentTitle(rawTitle)).replace(/\.[a-z0-9]{2,8}$/i, "");
+  return base ? `${base}.${extension}` : "";
+}
+
+function cleanAttachmentTitle(rawTitle) {
+  const title = String(rawTitle || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const parts = title.split(/\s*[:：]\s*/).filter(Boolean);
+  if (/^(添付ファイル|attachment|attached file)$/i.test(parts[0] || "") && parts.length >= 3) {
+    return parts.slice(2).join(" ");
+  }
+  if (/^(添付ファイル|attachment|attached file)$/i.test(parts[0] || "") && parts.length >= 2) {
+    return parts.slice(1).join(" ");
+  }
+  return title
+    .replace(/\s+(Google ドキュメント|Google スプレッドシート|Google スライド|Google 図形描画|PDF|Microsoft Word|Microsoft Excel|Microsoft PowerPoint)$/i, "")
+    .trim();
+}
+
+function sanitizeFilename(filename) {
+  return String(filename || "")
+    .replace(/[\\/:*?"<>|\u0000-\u001f]/g, "_")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 180);
 }
 
 function normalizeTranscriptForCopy(text) {

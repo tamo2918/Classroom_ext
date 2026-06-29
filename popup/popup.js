@@ -1,8 +1,9 @@
 const DEFAULT_SETTINGS = Object.freeze({
-  settingsVersion: 3,
+  settingsVersion: 4,
   autoCopy: true,
   includeTimestamps: true,
   openTranscriptPanel: true,
+  showAttachmentDownloadButtons: true,
   showToast: true,
   preferredLanguages: ["ja", "en"],
   minTranscriptChars: 40
@@ -20,6 +21,7 @@ const elements = {
   autoCopy: document.getElementById("autoCopy"),
   openTranscriptPanel: document.getElementById("openTranscriptPanel"),
   includeTimestamps: document.getElementById("includeTimestamps"),
+  showAttachmentDownloadButtons: document.getElementById("showAttachmentDownloadButtons"),
   showToast: document.getElementById("showToast"),
   preferredLanguages: document.getElementById("preferredLanguages")
 };
@@ -33,7 +35,7 @@ async function init() {
 }
 
 function bindEvents() {
-  for (const key of ["autoCopy", "openTranscriptPanel", "includeTimestamps", "showToast"]) {
+  for (const key of ["autoCopy", "openTranscriptPanel", "includeTimestamps", "showAttachmentDownloadButtons", "showToast"]) {
     elements[key].addEventListener("change", saveSettings);
   }
   elements.preferredLanguages.addEventListener("change", saveSettings);
@@ -105,6 +107,7 @@ async function loadSettings() {
   elements.openTranscriptPanel.checked = Boolean(settings.openTranscriptPanel);
   elements.includeTimestamps.checked = Boolean(settings.includeTimestamps);
   elements.includeTimestamps.disabled = true;
+  elements.showAttachmentDownloadButtons.checked = Boolean(settings.showAttachmentDownloadButtons);
   elements.showToast.checked = Boolean(settings.showToast);
   elements.preferredLanguages.value = Array.isArray(settings.preferredLanguages)
     ? settings.preferredLanguages.join(",")
@@ -118,6 +121,7 @@ async function saveSettings() {
     autoCopy: elements.autoCopy.checked,
     openTranscriptPanel: elements.openTranscriptPanel.checked,
     includeTimestamps: true,
+    showAttachmentDownloadButtons: elements.showAttachmentDownloadButtons.checked,
     showToast: elements.showToast.checked,
     preferredLanguages: elements.preferredLanguages.value
       .split(",")
