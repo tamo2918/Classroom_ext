@@ -6,6 +6,21 @@
     showToast: showSharedToast
   } = globalThis.CLT.content;
   const BUTTON_SIZE = 32;
+  const FILE_TYPE_LABEL_PATTERN = [
+    "Google ドキュメント",
+    "Google スプレッドシート",
+    "Google スライド",
+    "Google 図形描画",
+    "Microsoft Word",
+    "Microsoft Excel",
+    "Microsoft PowerPoint",
+    "Document",
+    "Spreadsheet",
+    "Presentation",
+    "PDF",
+    "動画"
+  ].join("|");
+  const FILE_EXTENSION_PATTERN = "pdf|docx?|xlsx?|pptx?|zip|csv|txt|mp4|mov|m4a";
   const PROVIDER = detectProvider();
   const showToast = (message, ok) => showSharedToast("clt-helper-toast", message, ok);
   const state = {
@@ -284,10 +299,25 @@
   }
 
   function cleanAttachmentTitle(rawTitle) {
-    return String(rawTitle || "")
+    const title = String(rawTitle || "")
       .replace(/\s+/g, " ")
-      .replace(/\s+(Google ドキュメント|Google スプレッドシート|Google スライド|Google 図形描画|PDF|動画|Microsoft Word|Microsoft Excel|Microsoft PowerPoint)$/i, "")
       .trim();
+    return stripTrailingFileTypeLabel(title);
+  }
+
+  function stripTrailingFileTypeLabel(rawTitle) {
+    let title = String(rawTitle || "").trim();
+    for (let index = 0; index < 3; index += 1) {
+      const nextTitle = title
+        .replace(new RegExp(`\\.(${FILE_EXTENSION_PATTERN})\\s*(?:${FILE_TYPE_LABEL_PATTERN})$`, "i"), ".$1")
+        .replace(new RegExp(`\\s+(?:${FILE_TYPE_LABEL_PATTERN})$`, "i"), "")
+        .trim();
+      if (nextTitle === title) {
+        return title;
+      }
+      title = nextTitle;
+    }
+    return title;
   }
 
   function getAttachmentCardText(anchor) {

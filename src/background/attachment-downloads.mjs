@@ -1,3 +1,19 @@
+const FILE_TYPE_LABEL_PATTERN = [
+  "Google ドキュメント",
+  "Google スプレッドシート",
+  "Google スライド",
+  "Google 図形描画",
+  "Microsoft Word",
+  "Microsoft Excel",
+  "Microsoft PowerPoint",
+  "Document",
+  "Spreadsheet",
+  "Presentation",
+  "PDF",
+  "動画"
+].join("|");
+const FILE_EXTENSION_PATTERN = "pdf|docx?|xlsx?|pptx?|zip|csv|txt|mp4|mov|m4a";
+
 export function buildAttachmentDownloadInfo(rawHref, rawTitle = "") {
   const url = parseAbsoluteUrl(rawHref);
   if (!url) {
@@ -123,14 +139,27 @@ function cleanAttachmentTitle(rawTitle) {
     .trim();
   const parts = title.split(/\s*[:：]\s*/).filter(Boolean);
   if (/^(添付ファイル|attachment|attached file)$/i.test(parts[0] || "") && parts.length >= 3) {
-    return parts.slice(2).join(" ");
+    return stripTrailingFileTypeLabel(parts.slice(2).join(" "));
   }
   if (/^(添付ファイル|attachment|attached file)$/i.test(parts[0] || "") && parts.length >= 2) {
-    return parts.slice(1).join(" ");
+    return stripTrailingFileTypeLabel(parts.slice(1).join(" "));
   }
-  return title
-    .replace(/\s+(Google ドキュメント|Google スプレッドシート|Google スライド|Google 図形描画|PDF|Microsoft Word|Microsoft Excel|Microsoft PowerPoint)$/i, "")
-    .trim();
+  return stripTrailingFileTypeLabel(title);
+}
+
+function stripTrailingFileTypeLabel(rawTitle) {
+  let title = String(rawTitle || "").trim();
+  for (let index = 0; index < 3; index += 1) {
+    const nextTitle = title
+      .replace(new RegExp(`\\.(${FILE_EXTENSION_PATTERN})\\s*(?:${FILE_TYPE_LABEL_PATTERN})$`, "i"), ".$1")
+      .replace(new RegExp(`\\s+(?:${FILE_TYPE_LABEL_PATTERN})$`, "i"), "")
+      .trim();
+    if (nextTitle === title) {
+      return title;
+    }
+    title = nextTitle;
+  }
+  return title;
 }
 
 function sanitizeFilename(filename) {

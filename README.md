@@ -95,6 +95,7 @@ node --check src/background/attachment-downloads.mjs
 node --check src/shared/settings.mjs
 node --check popup/popup.js
 node --check offscreen/offscreen.js
+node test/attachment-downloads.test.mjs
 python3 -m json.tool manifest.json >/dev/null
 ```
 
