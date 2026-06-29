@@ -9,6 +9,10 @@
     severityRank,
     summarizeDueItem
   } = globalThis.CLT.dueWork;
+  const {
+    applyDueCardSort,
+    clearDueCardSort
+  } = globalThis.CLT.dueCardSorter;
 
   const PROVIDER = detectProvider();
   const HOME_PATH_PATTERN = /^\/(?:u\/\d+\/)?h\/?$/;
@@ -37,6 +41,7 @@
       if (state.lastUrl !== location.href) {
         state.lastUrl = location.href;
         clearDueHighlights();
+        clearDueCardSort();
       }
       scheduleScan("interval");
     }, 60000);
@@ -76,28 +81,55 @@
 
     if (!isClassroomHome()) {
       clearDueHighlights();
+      clearDueCardSort();
       return;
     }
 
     const settings = await getSettings();
-    if (!settings.showDueSoonHighlights) {
+    if (!shouldScanDueWork(settings)) {
       clearDueHighlights();
+      clearDueCardSort();
       return;
     }
 
     const cards = findCourseCards();
+    const cardStates = [];
     const dueItems = [];
 
-    for (const card of cards) {
+    for (const [index, card] of cards.entries()) {
       const course = getCourseInfo(card);
       const items = extractDueItems(card, course);
-      applyCardState(card, items);
+      if (settings.showDueSoonHighlights) {
+        applyCardState(card, items);
+      } else {
+        clearCardState(card);
+      }
+      cardStates.push({
+        card,
+        course,
+        dueItems: items,
+        originalIndex: index
+      });
       dueItems.push(...items);
+    }
+
+    if (settings.autoSortDueSoonClasses) {
+      applyDueCardSort(cardStates);
+    } else {
+      clearDueCardSort();
     }
 
     if (settings.notifyDueSoonAssignments) {
       await notifyDueItems(dueItems, settings);
     }
+  }
+
+  function shouldScanDueWork(settings) {
+    return Boolean(
+      settings.showDueSoonHighlights ||
+      settings.autoSortDueSoonClasses ||
+      settings.notifyDueSoonAssignments
+    );
   }
 
   function findCourseCards() {
@@ -184,9 +216,7 @@
   }
 
   function applyCardState(card, dueItems) {
-    card.classList.remove("clt-due-card", "clt-due-urgent", "clt-due-soon", "clt-due-upcoming");
-    delete card.dataset.cltDueLabel;
-    delete card.dataset.cltDueSummary;
+    clearCardState(card);
 
     if (!dueItems.length) {
       return;
@@ -202,6 +232,12 @@
     card.classList.add("clt-due-card", `clt-due-${severity}`);
     card.dataset.cltDueLabel = dueItems.length === 1 ? "期限間近" : `期限間近 ${dueItems.length}件`;
     card.dataset.cltDueSummary = soonest ? summarizeDueItem(soonest) : "";
+  }
+
+  function clearCardState(card) {
+    card.classList.remove("clt-due-card", "clt-due-urgent", "clt-due-soon", "clt-due-upcoming");
+    delete card.dataset.cltDueLabel;
+    delete card.dataset.cltDueSummary;
   }
 
   async function notifyDueItems(dueItems, settings) {
@@ -238,9 +274,7 @@
 
   function clearDueHighlights() {
     document.querySelectorAll(".clt-due-card").forEach((card) => {
-      card.classList.remove("clt-due-card", "clt-due-urgent", "clt-due-soon", "clt-due-upcoming");
-      delete card.dataset.cltDueLabel;
-      delete card.dataset.cltDueSummary;
+      clearCardState(card);
     });
   }
 

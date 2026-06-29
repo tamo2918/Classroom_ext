@@ -1,10 +1,11 @@
 export const DEFAULT_SETTINGS = Object.freeze({
-  settingsVersion: 4,
+  settingsVersion: 5,
   autoCopy: true,
   includeTimestamps: true,
   openTranscriptPanel: true,
   showAttachmentDownloadButtons: true,
   showDueSoonHighlights: true,
+  autoSortDueSoonClasses: true,
   notifyDueSoonAssignments: true,
   dueNotificationMinIntervalHours: 12,
   showToast: true,

@@ -1,9 +1,13 @@
 const DEFAULT_SETTINGS = Object.freeze({
-  settingsVersion: 4,
+  settingsVersion: 5,
   autoCopy: true,
   includeTimestamps: true,
   openTranscriptPanel: true,
   showAttachmentDownloadButtons: true,
+  showDueSoonHighlights: true,
+  autoSortDueSoonClasses: true,
+  notifyDueSoonAssignments: true,
+  dueNotificationMinIntervalHours: 12,
   showToast: true,
   preferredLanguages: ["ja", "en"],
   minTranscriptChars: 40
@@ -22,6 +26,9 @@ const elements = {
   openTranscriptPanel: document.getElementById("openTranscriptPanel"),
   includeTimestamps: document.getElementById("includeTimestamps"),
   showAttachmentDownloadButtons: document.getElementById("showAttachmentDownloadButtons"),
+  showDueSoonHighlights: document.getElementById("showDueSoonHighlights"),
+  autoSortDueSoonClasses: document.getElementById("autoSortDueSoonClasses"),
+  notifyDueSoonAssignments: document.getElementById("notifyDueSoonAssignments"),
   showToast: document.getElementById("showToast"),
   preferredLanguages: document.getElementById("preferredLanguages")
 };
@@ -35,7 +42,16 @@ async function init() {
 }
 
 function bindEvents() {
-  for (const key of ["autoCopy", "openTranscriptPanel", "includeTimestamps", "showAttachmentDownloadButtons", "showToast"]) {
+  for (const key of [
+    "autoCopy",
+    "openTranscriptPanel",
+    "includeTimestamps",
+    "showAttachmentDownloadButtons",
+    "showDueSoonHighlights",
+    "autoSortDueSoonClasses",
+    "notifyDueSoonAssignments",
+    "showToast"
+  ]) {
     elements[key].addEventListener("change", saveSettings);
   }
   elements.preferredLanguages.addEventListener("change", saveSettings);
@@ -108,6 +124,9 @@ async function loadSettings() {
   elements.includeTimestamps.checked = Boolean(settings.includeTimestamps);
   elements.includeTimestamps.disabled = true;
   elements.showAttachmentDownloadButtons.checked = Boolean(settings.showAttachmentDownloadButtons);
+  elements.showDueSoonHighlights.checked = Boolean(settings.showDueSoonHighlights);
+  elements.autoSortDueSoonClasses.checked = Boolean(settings.autoSortDueSoonClasses);
+  elements.notifyDueSoonAssignments.checked = Boolean(settings.notifyDueSoonAssignments);
   elements.showToast.checked = Boolean(settings.showToast);
   elements.preferredLanguages.value = Array.isArray(settings.preferredLanguages)
     ? settings.preferredLanguages.join(",")
@@ -122,6 +141,10 @@ async function saveSettings() {
     openTranscriptPanel: elements.openTranscriptPanel.checked,
     includeTimestamps: true,
     showAttachmentDownloadButtons: elements.showAttachmentDownloadButtons.checked,
+    showDueSoonHighlights: elements.showDueSoonHighlights.checked,
+    autoSortDueSoonClasses: elements.autoSortDueSoonClasses.checked,
+    notifyDueSoonAssignments: elements.notifyDueSoonAssignments.checked,
+    dueNotificationMinIntervalHours: DEFAULT_SETTINGS.dueNotificationMinIntervalHours,
     showToast: elements.showToast.checked,
     preferredLanguages: elements.preferredLanguages.value
       .split(",")
