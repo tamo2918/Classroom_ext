@@ -40,7 +40,6 @@
     scheduleEnhancement("initial");
     window.addEventListener("pageshow", () => scheduleEnhancement("pageshow"));
     window.addEventListener("resize", () => scheduleEnhancement("resize"), { passive: true });
-    window.addEventListener("scroll", () => scheduleEnhancement("scroll"), { capture: true, passive: true });
 
     window.setInterval(() => {
       if (state.lastUrl !== location.href) {
@@ -109,7 +108,7 @@
   function findClassroomAttachmentLinks() {
     return [...document.querySelectorAll("a[href]")]
       .filter((anchor) => anchor instanceof HTMLAnchorElement)
-      .filter(isVisibleAttachmentAnchor)
+      .filter(isRenderableAttachmentAnchor)
       .filter(isLikelyClassroomAttachment)
       .filter((anchor) => Boolean(buildAttachmentDownloadPreview(anchor.href)));
   }
@@ -128,22 +127,22 @@
     return opensExternally && hasFileText;
   }
 
-  function isVisibleAttachmentAnchor(anchor) {
+  function isRenderableAttachmentAnchor(anchor) {
     const rect = anchor.getBoundingClientRect();
     const style = getComputedStyle(anchor);
     return rect.width >= 120 &&
       rect.height >= 36 &&
-      rect.bottom > 0 &&
-      rect.right > 0 &&
-      rect.top < window.innerHeight &&
-      rect.left < window.innerWidth &&
       style.visibility !== "hidden" &&
       style.display !== "none" &&
       Number(style.opacity || 1) > 0 &&
-      isAttachmentAnchorOnTop(anchor, rect);
+      isAttachmentAnchorAvailable(anchor, rect);
   }
 
-  function isAttachmentAnchorOnTop(anchor, rect) {
+  function isAttachmentAnchorAvailable(anchor, rect) {
+    if (rect.bottom <= 0 || rect.right <= 0 || rect.top >= window.innerHeight || rect.left >= window.innerWidth) {
+      return true;
+    }
+
     const sampleX = clamp(rect.left + Math.min(40, rect.width / 2), 0, window.innerWidth - 1);
     const sampleY = clamp(rect.top + rect.height / 2, 0, window.innerHeight - 1);
     const topElement = document.elementFromPoint(sampleX, sampleY);
