@@ -3,6 +3,7 @@
     detectProvider,
     getControlLabel,
     getSettings,
+    isExtensionContextInvalidated,
     showToast: showSharedToast
   } = globalThis.CLT.content;
   const BUTTON_SIZE = 32;
@@ -24,6 +25,7 @@
   const PROVIDER = detectProvider();
   const showToast = (message, ok) => showSharedToast("clt-helper-toast", message, ok);
   const state = {
+    contextInvalidated: false,
     entries: [],
     enhanceTimer: 0,
     lastUrl: location.href
@@ -72,9 +74,17 @@
   }
 
   function scheduleEnhancement(_reason) {
+    if (state.contextInvalidated) {
+      return;
+    }
     window.clearTimeout(state.enhanceTimer);
     state.enhanceTimer = window.setTimeout(() => {
-      enhanceAttachmentButtons().catch((error) => console.warn("[CLT] attachment enhancement failed", error));
+      enhanceAttachmentButtons().catch((error) => {
+        if (handleExtensionContextError(error)) {
+          return;
+        }
+        console.warn("[CLT] attachment enhancement failed", error);
+      });
     }, 180);
   }
 
@@ -192,6 +202,9 @@
     button.addEventListener("click", (event) => {
       stopAttachmentEvent(event);
       downloadClassroomAttachment(entry).catch((error) => {
+        if (handleExtensionContextError(error)) {
+          return;
+        }
         console.warn("[CLT] attachment download failed", error);
         showToast(error.message || "添付資料のダウンロードに失敗しました", false);
       });
@@ -255,6 +268,16 @@
       entry.button.remove();
     }
     state.entries = [];
+  }
+
+  function handleExtensionContextError(error) {
+    if (!isExtensionContextInvalidated(error)) {
+      return false;
+    }
+    state.contextInvalidated = true;
+    window.clearTimeout(state.enhanceTimer);
+    clearOverlayButtons();
+    return true;
   }
 
   function cleanupLegacyInlineState() {

@@ -27,10 +27,12 @@
     if (host === "classroom.google.com") {
       return "classroom";
     }
-    if (host.includes("youtube.com") || host.includes("youtube-nocookie.com") || host === "youtube.googleapis.com") {
-      return "youtube";
-    }
     return "unknown";
+  }
+
+  function isExtensionContextInvalidated(error) {
+    const message = String(error?.message || error || "");
+    return /extension context invalidated/i.test(message);
   }
 
   async function getSettings() {
@@ -185,6 +187,7 @@
     getSettings,
     isControlEnabled,
     isElementVisible,
+    isExtensionContextInvalidated,
     parsePlainTimestamp,
     showToast,
     sleep

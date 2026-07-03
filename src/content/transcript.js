@@ -8,6 +8,7 @@
     getSettings,
     isControlEnabled,
     isElementVisible,
+    isExtensionContextInvalidated,
     parsePlainTimestamp,
     showToast: showSharedToast,
     sleep
@@ -18,6 +19,7 @@
   const PROVIDER = detectProvider();
   const showToast = (message, ok) => showSharedToast("clt-transcript-toast", message, ok, { topFrameOnly: true });
   const state = {
+    contextInvalidated: false,
     didPrimeDrivePlayback: false,
     lastFingerprint: "",
     lastUrl: location.href,
@@ -47,10 +49,29 @@
   }
 
   function scheduleScan(reason) {
+    if (state.contextInvalidated) {
+      return;
+    }
     window.clearTimeout(state.scanTimer);
     state.scanTimer = window.setTimeout(() => {
-      scanAndCopy(reason).catch((error) => console.warn("[CLT] transcript scan failed", error));
+      scanAndCopy(reason).catch((error) => {
+        if (handleExtensionContextError(error)) {
+          return;
+        }
+        console.warn("[CLT] transcript scan failed", error);
+      });
     }, reason === "manual" ? 0 : 400);
+  }
+
+  function handleExtensionContextError(error) {
+    if (!isExtensionContextInvalidated(error)) {
+      return false;
+    }
+    state.contextInvalidated = true;
+    window.clearTimeout(state.scanTimer);
+    window.clearTimeout(state.mutationTimer);
+    window.clearTimeout(state.pendingRetryTimer);
+    return true;
   }
 
   async function scanAndCopy(reason) {
@@ -365,7 +386,7 @@
       return true;
     }
 
-    return Boolean(document.querySelector("iframe[src*='youtube.googleapis.com/embed'], iframe[title*='YouTube']"));
+    return false;
   }
 
   function schedulePendingRetry() {
@@ -463,7 +484,7 @@
   function isLikelyVideoContext() {
     if (PROVIDER === "drive") {
       return /\/file\/d\/|\/open\b|\/preview\b/.test(location.pathname) ||
-        Boolean(document.querySelector("iframe[src*='youtube.googleapis.com/embed'], video"));
+        Boolean(document.querySelector("video"));
     }
 
     if (PROVIDER === "docs") {

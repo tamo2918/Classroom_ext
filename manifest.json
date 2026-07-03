@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Classroom Helper",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "Google Classroom の学習・授業閲覧を効率化する Chrome 拡張。動画文字起こし、添付資料ダウンロード、期限管理を補助。",
   "permissions": [
     "activeTab",
@@ -14,11 +14,7 @@
   "host_permissions": [
     "https://classroom.google.com/*",
     "https://drive.google.com/*",
-    "https://docs.google.com/*",
-    "https://youtube.googleapis.com/*",
-    "https://www.youtube.com/*",
-    "https://m.youtube.com/*",
-    "https://www.youtube-nocookie.com/*"
+    "https://docs.google.com/*"
   ],
   "background": {
     "service_worker": "src/background.js",
@@ -29,11 +25,7 @@
       "matches": [
         "https://classroom.google.com/*",
         "https://drive.google.com/*",
-        "https://docs.google.com/*",
-        "https://youtube.googleapis.com/*",
-        "https://www.youtube.com/*",
-        "https://m.youtube.com/*",
-        "https://www.youtube-nocookie.com/*"
+        "https://docs.google.com/*"
       ],
       "js": [
         "src/content/shared.js",

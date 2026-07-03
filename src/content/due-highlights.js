@@ -2,7 +2,8 @@
   const {
     detectProvider,
     getSettings,
-    isElementVisible
+    isElementVisible,
+    isExtensionContextInvalidated
   } = globalThis.CLT.content;
   const {
     buildDueItem,
@@ -21,6 +22,7 @@
   const COURSE_LINK_SELECTOR = "a[href*='/c/']";
   const NO_DUE_TEXT_PATTERN = /提出期限の近い課題はありません|no work due soon/i;
   const state = {
+    contextInvalidated: false,
     lastUrl: location.href,
     notifyFingerprint: "",
     scanTimer: 0
@@ -70,10 +72,29 @@
   }
 
   function scheduleScan(_reason) {
+    if (state.contextInvalidated) {
+      return;
+    }
     window.clearTimeout(state.scanTimer);
     state.scanTimer = window.setTimeout(() => {
-      scanDueCards().catch((error) => console.warn("[CLT] due scan failed", error));
+      scanDueCards().catch((error) => {
+        if (handleExtensionContextError(error)) {
+          return;
+        }
+        console.warn("[CLT] due scan failed", error);
+      });
     }, 250);
+  }
+
+  function handleExtensionContextError(error) {
+    if (!isExtensionContextInvalidated(error)) {
+      return false;
+    }
+    state.contextInvalidated = true;
+    window.clearTimeout(state.scanTimer);
+    clearDueHighlights();
+    clearDueCardSort();
+    return true;
   }
 
   async function scanDueCards() {
