@@ -320,12 +320,18 @@
     return cleanAttachmentTitle(anchor.innerText || anchor.textContent || anchor.title || "");
   }
 
-  function cleanAttachmentTitle(rawTitle) {
-    const title = String(rawTitle || "")
-      .replace(/\s+/g, " ")
-      .trim();
-    return stripTrailingFileTypeLabel(title);
-  }
+  function removeRepeatedTitle(title) {
+  const match = title.match(/^(.+?)(?:\s+\1)+$/);
+  return match ? match[1] : title;
+}
+
+function cleanAttachmentTitle(rawTitle) {
+  const title = String(rawTitle || "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return removeRepeatedTitle(stripTrailingFileTypeLabel(title));
+}
 
   function stripTrailingFileTypeLabel(rawTitle) {
     let title = String(rawTitle || "").trim();
