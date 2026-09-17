@@ -133,18 +133,23 @@ function filenameWithExtension(rawTitle, extension) {
   return base ? `${base}.${extension}` : "";
 }
 
+function removeRepeatedTitle(title) {
+  const match = title.match(/^(.+?)(?:\s+\1)+$/);
+  return match ? match[1] : title;
+}
+
 function cleanAttachmentTitle(rawTitle) {
   const title = String(rawTitle || "")
     .replace(/\s+/g, " ")
     .trim();
   const parts = title.split(/\s*[:：]\s*/).filter(Boolean);
   if (/^(添付ファイル|attachment|attached file)$/i.test(parts[0] || "") && parts.length >= 3) {
-    return stripTrailingFileTypeLabel(parts.slice(2).join(" "));
+    return removeRepeatedTitle(stripTrailingFileTypeLabel(title));
   }
   if (/^(添付ファイル|attachment|attached file)$/i.test(parts[0] || "") && parts.length >= 2) {
-    return stripTrailingFileTypeLabel(parts.slice(1).join(" "));
+    return removeRepeatedTitle(stripTrailingFileTypeLabel(title));
   }
-  return stripTrailingFileTypeLabel(title);
+  return removeRepeatedTitle(stripTrailingFileTypeLabel(title));
 }
 
 function stripTrailingFileTypeLabel(rawTitle) {
